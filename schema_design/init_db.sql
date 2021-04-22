@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS content.film_work (
     id uuid PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
-    imdb_rating FLOAT,
-    plot TEXT
+    imdb_rating FLOAT
 );
 
 CREATE TABLE IF NOT EXISTS content.person (
