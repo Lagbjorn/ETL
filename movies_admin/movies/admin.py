@@ -1,17 +1,55 @@
 from django.contrib import admin
-from .models import FilmWork, Person, Genre
+from .models import FilmWork, Person, Genre, PersonJob, FilmWorkGenre
+
+
+class GenreInline(admin.TabularInline):
+    model = FilmWork.genres.through
+    extra = 0
+    fields = ('genre', )
+    raw_id_fields = (
+        'genre',
+    )
+
+
+class PersonInline(admin.TabularInline):
+    model = FilmWork.persons.through
+    extra = 0
+    fields = (
+        'film_work',
+        'person',
+        'job',
+    )
+    search_fields = ('film_work', )
 
 
 @admin.register(FilmWork)
 class FilmWorkAdmin(admin.ModelAdmin):
+    list_filter = ('film_type',)
     list_display = ('title', 'imdb_rating')
+    fields = (
+        'title',
+        'description',
+        'creation_date',
+        'film_type',
+        'film_rating',
+        'imdb_rating',
+    )
+    search_fields = ('title', )
+    inlines = [
+        GenreInline,
+        PersonInline,
+    ]
 
 
 @admin.register(Person)
 class PersonAdmin(admin.ModelAdmin):
     list_display = ('name', )
+    inlines = [
+        PersonInline,
+    ]
 
 
 @admin.register(Genre)
 class GenreAdmin(admin.ModelAdmin):
+    fields = ('genre', )
     list_display = ('genre', )
