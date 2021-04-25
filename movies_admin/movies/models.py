@@ -1,9 +1,10 @@
 import uuid
 
 from django.db import models
+from model_utils.models import TimeStampedModel
 
 
-class Person(models.Model):
+class Person(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     name = models.TextField()
 
@@ -11,7 +12,7 @@ class Person(models.Model):
         db_table = 'person'
 
 
-class Genre(models.Model):
+class Genre(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     genre = models.TextField()
 
@@ -19,7 +20,7 @@ class Genre(models.Model):
         db_table = 'genre'
 
 
-class FilmWork(models.Model):
+class FilmWork(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     title = models.TextField()
     description = models.TextField(blank=True, null=True)
@@ -30,7 +31,7 @@ class FilmWork(models.Model):
         db_table = 'film_work'
 
 
-class FilmWorkGenre(models.Model):
+class FilmWorkGenre(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     film_work = models.ForeignKey(FilmWork, models.DO_NOTHING)
     genre = models.ForeignKey('Genre', models.DO_NOTHING)
@@ -39,7 +40,7 @@ class FilmWorkGenre(models.Model):
         db_table = 'film_work_genre'
 
 
-class FilmWorkPerson(models.Model):
+class FilmWorkPerson(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     film_work = models.ForeignKey(FilmWork, models.DO_NOTHING)
     person = models.ForeignKey('Person', models.DO_NOTHING)
