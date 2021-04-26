@@ -109,6 +109,11 @@ class SQLiteLoader:
 
     @staticmethod
     def _validate_na(row: dict):
+        """
+        Replace "N/A" values with None
+        :param row: dict corresponding to 'movies' table row
+        :return: None
+        """
         for key in row:
             if row[key] == "N/A":
                 row[key] = None
