@@ -6,9 +6,6 @@ class GenreInline(admin.TabularInline):
     model = FilmWork.genres.through
     extra = 0
     fields = ('genre', )
-    raw_id_fields = (
-        'genre',
-    )
 
 
 class PersonInline(admin.TabularInline):
@@ -51,5 +48,5 @@ class PersonAdmin(admin.ModelAdmin):
 
 @admin.register(Genre)
 class GenreAdmin(admin.ModelAdmin):
-    fields = ('genre', )
+    fields = ('genre', 'description')
     list_display = ('genre', )

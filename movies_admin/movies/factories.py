@@ -20,8 +20,8 @@ class FilmWorkFactory(DjangoModelFactory):
     )
     creation_date = factory.Faker('date')
     film_rating = factory.Faker('word')
-    imdb_rating = factory.Faker('pyfloat', min_value=0, max_value=10)
-    film_type = factory.Faker('word', ext_word_list=FilmWorkType.choices)
+    imdb_rating = factory.Faker('pyfloat', min_value=0, max_value=10, right_digits=1)
+    film_type = factory.Faker('word', ext_word_list=FilmWorkType.values)
 
 
 class PersonFactory(DjangoModelFactory):
@@ -35,7 +35,7 @@ class FilmWorkPersonFactory(DjangoModelFactory):
     class Meta:
         model = FilmWorkPerson
 
-    job = factory.Faker('word', ext_word_list=PersonJob.choices)
+    job = factory.Faker('word', ext_word_list=PersonJob.values)
 
 
 class FilmWorkGenreFactory(DjangoModelFactory):
@@ -48,3 +48,4 @@ class GenreFactory(DjangoModelFactory):
         model = Genre
 
     genre = factory.Faker('word')
+    description = factory.Faker('sentence', nb_words=32, variable_nb_words=True)

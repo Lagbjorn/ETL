@@ -19,7 +19,7 @@ class PersonJob(models.TextChoices):
 
 class Person(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.TextField()
+    name = models.TextField(_('имя'))
 
     class Meta:
         db_table = 'person'
@@ -33,6 +33,7 @@ class Person(TimeStampedModel):
 class Genre(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     genre = models.CharField(_('жанр'), max_length=255)
+    description = models.TextField(_('описание'), blank=True, null=True)
 
     class Meta:
         db_table = 'genre'
@@ -45,14 +46,14 @@ class Genre(TimeStampedModel):
 
 class FilmWork(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    creation_date = models.DateField(blank=True, null=True)
-    film_rating = models.CharField(blank=True,
+    title = models.CharField(_('название'), max_length=255)
+    description = models.TextField(_('описание'), blank=True, null=True)
+    creation_date = models.DateField(_('дата выхода'), blank=True, null=True)
+    film_rating = models.CharField(_('возрастной рейтинг'), blank=True,
                                    null=True,
                                    max_length=32,
                                    help_text='suitability for different age audience')
-    imdb_rating = models.FloatField(blank=True,
+    imdb_rating = models.FloatField(_('IMDb рейтинг'), blank=True,
                                     null=True,
                                     help_text='user ratings from IMDb')
     genres = models.ManyToManyField(Genre, through='FilmWorkGenre')
