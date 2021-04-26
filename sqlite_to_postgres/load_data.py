@@ -84,9 +84,6 @@ class SQLiteLoader:
                 row = self.cursor.fetchone()
                 person["name"] = row["name"]
 
-        # get rid of N/A writer
-        movie_persons = [person for person in movie_persons if person["name"] != "N/A"]
-
         sql_movie_actors = """
                            SELECT movies.id, actors.name 
                            FROM actors 
@@ -97,6 +94,8 @@ class SQLiteLoader:
             movie_persons.append({"movie_uuid": movie_id_uuid[row["id"]],
                                   "name": row["name"],
                                   "role": "actor"})
+        # get rid of N/A persons
+        movie_persons = [person for person in movie_persons if person["name"] != "N/A"]
 
         # get unique persons (by unique name) and assign uuids
         unique_persons = set()
