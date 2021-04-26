@@ -25,6 +25,9 @@ class Person(TimeStampedModel):
         db_table = 'person'
         verbose_name = _('человек')
         verbose_name_plural = _('люди')
+        indexes = (
+            models.Index(fields=('name', )),
+        )
 
     def __str__(self):
         return self.name
@@ -39,6 +42,9 @@ class Genre(TimeStampedModel):
         db_table = 'genre'
         verbose_name = _('жанр')
         verbose_name_plural = _('жанры')
+        indexes = (
+            models.Index(fields=('genre', )),
+        )
 
     def __str__(self):
         return self.genre
@@ -64,6 +70,10 @@ class FilmWork(TimeStampedModel):
         db_table = 'film_work'
         verbose_name = _('кинопроизведение')
         verbose_name_plural = _('кинопроизведения')
+        indexes = (
+            models.Index(fields=('title',)),
+            models.Index(fields=('creation_date',)),
+        )
 
     def __str__(self):
         return self.title
@@ -76,6 +86,9 @@ class FilmWorkGenre(TimeStampedModel):
 
     class Meta:
         db_table = 'film_work_genre'
+        indexes = (
+            models.Index(fields=('film_work', 'genre', )),
+        )
 
 
 class FilmWorkPerson(TimeStampedModel):
@@ -86,3 +99,6 @@ class FilmWorkPerson(TimeStampedModel):
 
     class Meta:
         db_table = 'film_work_person'
+        indexes = (
+            models.Index(fields=('film_work', 'person', )),
+        )
