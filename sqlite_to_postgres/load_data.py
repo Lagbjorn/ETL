@@ -1,6 +1,7 @@
 import json
 import logging
 import psycopg2
+import re
 import sqlite3
 import uuid
 
@@ -56,6 +57,9 @@ class SQLiteLoader:
             directors = row.pop("director")
             if directors:
                 for director_name in directors.split(', '):
+                    # some directors have unnecessary comment
+                    director_name = re.sub("[\(\[].*?[\)\]]", "", director_name)
+
                     movie_persons.append({"movie_uuid": movie_uuid,
                                           "id": None,
                                           "name": director_name,
@@ -140,9 +144,6 @@ class PostgresSaver:
         self.connection = pg_conn
 
     def save_data(self, data):
-        # TODO: use dataclasses
-        # TODO: support executemany
-        # TODO: load in batches
         movies, movie_persons, movie_genres, person_uuid, genre_uuid = data
 
         # clear tables. tables with m2m relation info are removed by CASCADE
