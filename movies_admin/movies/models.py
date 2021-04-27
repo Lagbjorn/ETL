@@ -35,7 +35,7 @@ class Person(TimeStampedModel):
 
 class Genre(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    genre = models.CharField(_('жанр'), max_length=255)
+    genre = models.CharField(_('жанр'), max_length=255, unique=True)
     description = models.TextField(_('описание'), blank=True, null=True)
 
     class Meta:
