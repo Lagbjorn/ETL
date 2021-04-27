@@ -43,7 +43,3 @@ CREATE TABLE IF NOT EXISTS content.film_work_genre (
     FOREIGN KEY (genre_id)
         REFERENCES genre(id) ON DELETE CASCADE
 );
-
-GRANT USAGE ON SCHEMA content TO django;
-GRANT CREATE ON SCHEMA content TO django;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA content TO django;
