@@ -1,3 +1,4 @@
+import os
 from .base import *
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', False)
