@@ -1,12 +1,13 @@
 import json
 import logging
-import psycopg2
 import re
 import sqlite3
 import uuid
 
+import psycopg2
 from psycopg2.extensions import connection as _connection
 from psycopg2.extras import DictCursor
+
 from .models import FilmWork
 
 
