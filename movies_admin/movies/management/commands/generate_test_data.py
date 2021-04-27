@@ -41,10 +41,13 @@ class Command(BaseCommand):
         films = (FilmWorkFactory() for _ in range(NUM_FILMS))
         # use list comprehensions because these are smaller
         # & I want to sample from the entire set of these
+        #
+        # Also use tqdm since model creation can take a while.
+        # You want to be sure that the process keeps on going!
         persons = [PersonFactory() for _ in tqdm(range(NUM_PERSONS), desc='Creating persons')]
         genres = [GenreFactory() for _ in tqdm(range(NUM_GENRES), desc='Creating genres')]
 
-        for film in tqdm(films, desc="Creating fake FilmWorks", total=NUM_FILMS):
+        for film in tqdm(films, desc='Creating fake FilmWorks', total=NUM_FILMS):
             # sample first to avoid duplicates
             persons_sample = random.sample(persons, random.randint(0, PERSONS_PER_FILM))
             genres_sample = random.sample(genres, random.randint(0, GENRES_PER_FILM))

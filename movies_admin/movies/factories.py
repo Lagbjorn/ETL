@@ -1,3 +1,7 @@
+"""
+Implement fake model factories for test purposes
+"""
+
 import factory
 from factory.django import DjangoModelFactory
 

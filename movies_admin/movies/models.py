@@ -6,18 +6,21 @@ from model_utils.models import TimeStampedModel
 
 
 class FilmWorkType(models.TextChoices):
+    """Available film work types"""
     TV_SHOW = 'tv_show', _('шоу')
     MOVIE = 'movie', _('фильм')
     SERIES = 'series', _('сериал')
 
 
 class PersonJob(models.TextChoices):
+    """Available person jobs"""
     ACTOR = 'actor', _('актёр')
     DIRECTOR = 'director', _('режиссёр')
     WRITER = 'writer', _('сценарист')
 
 
 class Person(TimeStampedModel):
+    """Person who has participated in film work creation"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.TextField(_('имя'))
 
@@ -34,6 +37,7 @@ class Person(TimeStampedModel):
 
 
 class Genre(TimeStampedModel):
+    """Genres available for film works"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     genre = models.CharField(_('жанр'), max_length=255, unique=True)
     description = models.TextField(_('описание'), blank=True, null=True)
@@ -51,6 +55,7 @@ class Genre(TimeStampedModel):
 
 
 class FilmWork(TimeStampedModel):
+    """Film work of some kind: movie, tv show, series"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(_('название'), max_length=255)
     description = models.TextField(_('описание'), blank=True, null=True)
@@ -80,6 +85,7 @@ class FilmWork(TimeStampedModel):
 
 
 class FilmWorkGenre(TimeStampedModel):
+    """M2M relation between film work and genre"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     film_work = models.ForeignKey(FilmWork, models.DO_NOTHING)
     genre = models.ForeignKey(Genre, models.DO_NOTHING)
@@ -92,6 +98,10 @@ class FilmWorkGenre(TimeStampedModel):
 
 
 class FilmWorkPerson(TimeStampedModel):
+    """
+    M2M relation between film work and person. Additionally holds
+    information about person's job in a film work
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     film_work = models.ForeignKey(FilmWork, models.DO_NOTHING)
     person = models.ForeignKey(Person, models.DO_NOTHING)
