@@ -21,6 +21,14 @@ pip install requirements.txt -r
 cd ./movies_admin
 pip install -r requirements/dev.txt
 ```
+
+Задайте несколько переменных окружения. На данный момент имя пользователя 
+для приложения django и его пароль закреплены в исходном коде init_db
+```commandline
+set POSTGRES_USER=django
+set POSTGRES_PASSWORD=password
+```
+
 Примените миграции. Изначальная миграция для приложения `movies` должна быть с флагом `--fake`,
 т.к. схема уже существует.
 ```commandline
