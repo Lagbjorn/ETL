@@ -7,18 +7,26 @@ import uuid
 
 from psycopg2.extensions import connection as _connection
 from psycopg2.extras import DictCursor
-from sqlite_to_postgres.models import FilmWork
+from .models import FilmWork
 
 
 def dict_factory(cursor: sqlite3.Cursor, row: tuple) -> dict:
+    """
+    Convert fetched data row from tuple to dict
+    :param cursor: sqlite3 cursor
+    :param row: tuple of row values
+    :return: d: dict like {field_name: field_value}
+    """
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
     return d
 
 
-# TODO: document it all
 class SQLiteLoader:
+    """
+    This class allows you to extract data from badly designed db.sqlite
+    """
     connection: sqlite3.Connection
 
     def __init__(self, connection: sqlite3.Connection):
@@ -27,6 +35,15 @@ class SQLiteLoader:
         self.cursor = connection.cursor()
 
     def load_all_data(self):
+        """
+        Loads data from db.sqlite into memory
+        :return:
+        movies: list[FilmWork] with extracted movies,
+        movie_persons: list of dicts with information about m2m movies to person relations,
+        movie_genres: list of dicts with information about m2m genres to person relations,
+        person_uuid: dict like {person_name_1: person_uuid_1, ...},
+        genre_uuid: dict like {genre_1: genre_uuid_1, ...}
+        """
         sql = "SELECT * FROM movies"
         movies = []
         movie_persons = []
@@ -124,7 +141,7 @@ class SQLiteLoader:
     @staticmethod
     def _combine_writers(row: dict) -> list:
         """
-
+        Combine writer ids to one collection from two fields
         :param row: dict corresponding to `movies` table row
         :return: list[str] of writer ids
         """
@@ -137,12 +154,20 @@ class SQLiteLoader:
 
 
 class PostgresSaver:
+    """
+    The class allows you to save data to PostgreSQL database
+    """
     connection: _connection
 
     def __init__(self, pg_conn):
         self.connection = pg_conn
 
     def save_data(self, data):
+        """
+        save data to PostgreSQL
+        :param data: data returned from SQLiteLoader.load_all_data
+        :return: None
+        """
         movies, movie_persons, movie_genres, person_uuid, genre_uuid = data
 
         # clear tables. tables with m2m relation info are removed by CASCADE
@@ -189,7 +214,7 @@ class PostgresSaver:
 
 
 def load_from_sqlite(connection: sqlite3.Connection, pg_conn: _connection):
-    """Основной метод загрузки данных из SQLite в Postgres"""
+    """Main function which transfers data from SQLite to Postgres"""
     sqlite_loader = SQLiteLoader(connection)
     data = sqlite_loader.load_all_data()
 
