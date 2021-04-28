@@ -1,5 +1,3 @@
-CREATE USER django WITH ENCRYPTED PASSWORD 'password';
-CREATE DATABASE movies OWNER django;
 \c movies django;
 CREATE SCHEMA IF NOT EXISTS content;
 

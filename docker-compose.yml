@@ -3,9 +3,36 @@ services:
   postgres:
     image: postgres:13
     volumes:
+    - './schema_design/init_01_create_user.sh:/docker-entrypoint-initdb.d/init_01_create_user.sh'
     - './schema_design/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql'
     environment:
     - POSTGRES_USER=postgres
     - POSTGRES_PASSWORD=password
+    - DJANGO_POSTGRES_USER=django # same as for movies_admin service
+    - DJANGO_POSTGRES_PASSWORD=password # same as for movies_admin service
     ports:
     - 5432:5432
+  movies_admin:
+    build:
+      context: ./movies_admin
+      dockerfile: Dockerfile
+    ports:
+    - 8000:8000
+    volumes:
+    - ./movies_admin:/movies_admin
+    depends_on:
+    - postgres
+    environment:
+    - DEBUG=True
+    - SUPERUSER=admin
+    - SUPERUSER_PASSWORD=admin
+    - SECRET_KEY=top_secret_key
+    - POSTGRES_USER=django
+    - POSTGRES_PASSWORD=password
+    - POSTGRES_HOST=postgres
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate movies 0001 --fake &&
+             python manage.py migrate &&
+             python manage.py createsuperuser_from_env &&
+             python manage.py runserver 0.0.0.0:8000"
