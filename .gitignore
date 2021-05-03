@@ -50,3 +50,6 @@ ENV/
 
 # auto generated docs
 doc.html
+
+Pipfile
+Pipfile.lock
