@@ -3,6 +3,7 @@ from .base import *
 
 DEBUG = os.getenv('DEBUG', False)
 INSTALLED_APPS.append('django_extensions')
+INSTALLED_APPS.append('debug_toolbar')
 
 LOGGING = {
     'version': 1,
@@ -31,4 +32,10 @@ LOGGING = {
             'propagate': False,
         }
     },
+}
+
+MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': lambda request: True,
 }
