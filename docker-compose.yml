@@ -32,7 +32,7 @@ services:
     - POSTGRES_HOST=postgres
     command: >
       sh -c "python manage.py wait_for_db &&
-             python manage.py migrate movies 0001 --fake &&
+             python manage.py migrate movies --fake-initial &&
              python manage.py migrate &&
              python manage.py createsuperuser_from_env &&
              python manage.py runserver 0.0.0.0:8000"
