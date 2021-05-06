@@ -18,6 +18,7 @@ class MoviesListApi(BaseListView):
     def get_context_data(self, *, object_list=None, **kwargs) -> dict:
         qs = self.get_queryset()
         context = self.paginate_queryset(qs, self.paginate_by)
+        context['result'] = [result for result in context['result']]
         return context
 
     def paginate_queryset(self, queryset, page_size) -> dict:
@@ -37,13 +38,12 @@ class MoviesListApi(BaseListView):
         # JSON serializer will convert None to null
         prev_page_num = page.previous_page_number() if page.has_previous() else None
         next_page_num = page.next_page_number() if page.has_next() else None
-        result_list = [obj for obj in page.object_list]
         context = {
             'count': paginator.count,
             'total_pages': paginator.num_pages,
             'prev': prev_page_num,
             'next': next_page_num,
-            'result': result_list,
+            'result': page.object_list,
         }
         return context
 
