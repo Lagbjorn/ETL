@@ -25,7 +25,7 @@ class MoviesApiMixin:
         qs = qs.annotate(rating=F('imdb_rating'))
         qs = qs.annotate(type=F('film_type'))
         # add genres
-        qs = qs.annotate(genres_list=ArrayAgg('genres__genre', distinct=True))
+        qs = qs.annotate(genres=ArrayAgg('genres__genre', distinct=True))
         # add persons
         # could have copy 3 times, but we may extend `job` number later
         for job in PersonJob.values:
