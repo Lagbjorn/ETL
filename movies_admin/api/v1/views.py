@@ -1,6 +1,7 @@
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F, Q, QuerySet
 from django.http import Http404, JsonResponse
+from django.views.generic.detail import BaseDetailView
 from django.views.generic.list import BaseListView
 from django.utils.translation import gettext as _
 
@@ -11,7 +12,7 @@ class MoviesApiMixin:
     model = FilmWork
     http_method_names = ['get']
 
-    def render_to_response(self, context, **response_kwargs) -> JsonResponse:
+    def render_to_response(self, context) -> JsonResponse:
         return JsonResponse(context)
 
     def get_queryset(self) -> QuerySet:
@@ -69,4 +70,12 @@ class MoviesListApi(MoviesApiMixin, BaseListView):
             'next': next_page_num,
             'result': page.object_list,
         }
+        return context
+
+
+class MoviesDetailView(MoviesApiMixin, BaseDetailView):
+    pk_url_kwarg = 'id'
+
+    def get_context_data(self, **kwargs):
+        context = self.object
         return context
