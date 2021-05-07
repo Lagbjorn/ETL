@@ -7,10 +7,12 @@ from django.utils.translation import gettext as _
 from movies.models import FilmWork, PersonJob
 
 
-class MoviesListApi(BaseListView):
-    paginate_by = 50
+class MoviesApiMixin:
     model = FilmWork
     http_method_names = ['get']
+
+    def render_to_response(self, context, **response_kwargs) -> JsonResponse:
+        return JsonResponse(context)
 
     def get_queryset(self) -> QuerySet:
         # look how we just do it in 2 SQL queries!
@@ -30,6 +32,10 @@ class MoviesListApi(BaseListView):
             kwarg = {jobs_list: ArrayAgg('persons__name', distinct=True, filter=Q(filmworkperson__job=job))}
             qs = qs.annotate(**kwarg)
         return qs
+
+
+class MoviesListApi(MoviesApiMixin, BaseListView):
+    paginate_by = 50
 
     def get_context_data(self, *, object_list=None, **kwargs) -> dict:
         qs = self.get_queryset()
@@ -64,6 +70,3 @@ class MoviesListApi(BaseListView):
             'result': page.object_list,
         }
         return context
-
-    def render_to_response(self, context, **response_kwargs) -> JsonResponse:
-        return JsonResponse(context)
