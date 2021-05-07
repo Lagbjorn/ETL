@@ -40,7 +40,7 @@ class MoviesListApi(MoviesApiMixin, BaseListView):
 
     def get_context_data(self, *, object_list=None, **kwargs) -> dict:
         qs = self.get_queryset()
-        context = self.paginate_queryset(qs, self.paginate_by)
+        context = self.paginate_queryset(qs, self.get_paginate_by(qs))
         context = dict(context)
         context['result'] = list(context['result'])
         return context
