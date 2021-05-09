@@ -9,6 +9,7 @@ from movies.models import FilmWork, PersonJob
 
 
 class MoviesApiMixin:
+    """Mixin of properties and methods to keep API views DRY"""
     model = FilmWork
     http_method_names = ['get']
 
@@ -36,6 +37,7 @@ class MoviesApiMixin:
 
 
 class MoviesListApi(MoviesApiMixin, BaseListView):
+    """Paginated list view for filmworks"""
     paginate_by = 50
 
     def get_context_data(self, *, object_list=None, **kwargs) -> dict:
@@ -74,6 +76,7 @@ class MoviesListApi(MoviesApiMixin, BaseListView):
 
 
 class MoviesDetailView(MoviesApiMixin, BaseDetailView):
+    """Detail view for filmwork"""
     pk_url_kwarg = 'id'
 
     def get_context_data(self, **kwargs):
