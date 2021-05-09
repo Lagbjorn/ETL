@@ -1,0 +1,54 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:13
+    volumes:
+    - ./schema_design/init_01_create_user.sh:/docker-entrypoint-initdb.d/init_01_create_user.sh
+    - ./schema_design/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    environment:
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=password
+    - DJANGO_POSTGRES_USER=django # same as for movies_admin service
+    - DJANGO_POSTGRES_PASSWORD=password # same as for movies_admin service
+    ports:
+    - 5432:5432
+    restart: always
+  movies_admin:
+    build:
+      context: ./movies_admin
+      dockerfile: Dockerfile.prod
+    expose:
+    - 8000
+    volumes:
+    - static_volume:/movies_admin/static
+    depends_on:
+    - postgres
+    environment:
+    - DEBUG=False
+    - SUPERUSER=admin
+    - SUPERUSER_PASSWORD=admin
+    - SECRET_KEY=top_secret_key
+    - POSTGRES_USER=django
+    - POSTGRES_PASSWORD=password
+    - POSTGRES_HOST=postgres
+    - DJANGO_SETTINGS_MODULE=config.settings.production
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate movies --fake-initial &&
+             python manage.py migrate &&
+             python manage.py createsuperuser_from_env &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+  nginx-server:
+    image: nginx:1.19.2
+    volumes:
+    - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./nginx/site.conf:/etc/nginx/conf.d/site.conf:ro
+    - static_volume:/movies_admin/static
+    ports:
+    - 8000:80
+    depends_on:
+    - movies_admin
+    restart: always
+volumes:
+  static_volume:
