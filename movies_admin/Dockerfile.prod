@@ -1,0 +1,9 @@
+FROM python:3.9
+ENV PYTHONUNBUFFERED=1
+
+COPY . /movies_admin
+
+RUN pip install -r /movies_admin/requirements/production.txt
+
+WORKDIR /movies_admin
+RUN mkdir /static
