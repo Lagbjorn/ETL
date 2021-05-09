@@ -53,3 +53,6 @@ doc.html
 
 Pipfile
 Pipfile.lock
+/movies_admin/static/admin/
+/movies_admin/static/debug_toolbar/
+/movies_admin/static/django_extensions/
