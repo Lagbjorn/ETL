@@ -7,6 +7,8 @@ from django.utils.translation import gettext as _
 
 from movies.models import FilmWork, PersonJob
 
+PAGE_SIZE = 50
+
 
 class MoviesApiMixin:
     """Mixin of properties and methods to keep API views DRY"""
@@ -38,7 +40,7 @@ class MoviesApiMixin:
 
 class MoviesListApi(MoviesApiMixin, BaseListView):
     """Paginated list view for filmworks"""
-    paginate_by = 50
+    paginate_by = PAGE_SIZE
 
     def get_context_data(self, *, object_list=None, **kwargs) -> dict:
         qs = self.get_queryset()
