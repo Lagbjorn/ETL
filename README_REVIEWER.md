@@ -13,7 +13,7 @@ docker compose up --build
 ```
 Загрузите fixture с основной базой, чтобы было на чём тестировать.
 ```commandline
-docker exec admin_panel_sprint_2_movies_admin_1 python manage.py loaddata true_db.json
+docker exec admin_panel_sprint_2_movies_admin_1 python manage.py loaddata movies.json
 ```
 
 Вы можете протестировать автоматически с помощью Postman-коллекции тестов `files/postman_tests_fixed_by_student.json`.
@@ -39,5 +39,5 @@ docker exec admin_panel_sprint_2_movies_admin_1 python manage.py loaddata true_d
 
 Учтите, что после сборки контейнеров нужно наполнить базу в контейнере `movies_admin`:
 ```
-python manage.py loaddata true_db.json
+python manage.py loaddata movies.json
 ```

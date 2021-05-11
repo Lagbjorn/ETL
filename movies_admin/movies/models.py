@@ -40,7 +40,7 @@ class Genre(TimeStampedModel):
     """Genres available for film works"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     genre = models.CharField(_('жанр'), max_length=255, unique=True)
-    description = models.TextField(_('описание'), blank=True, null=True)
+    description = models.TextField(_('описание'), blank=True, default='')
 
     class Meta:
         db_table = 'genre'
@@ -58,18 +58,18 @@ class FilmWork(TimeStampedModel):
     """Film work of some kind: movie, tv show, series"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(_('название'), max_length=255)
-    description = models.TextField(_('описание'), blank=True, null=True)
+    description = models.TextField(_('описание'), blank=True, default='')
     creation_date = models.DateField(_('дата выхода'), blank=True, null=True)
     film_rating = models.CharField(_('возрастной рейтинг'), blank=True,
-                                   null=True,
                                    max_length=32,
+                                   default='',
                                    help_text='suitability for different age audience')
     imdb_rating = models.FloatField(_('IMDb рейтинг'), blank=True,
                                     null=True,
                                     help_text='user ratings from IMDb')
     genres = models.ManyToManyField(Genre, through='FilmWorkGenre')
     persons = models.ManyToManyField(Person, through='FilmWorkPerson')
-    film_type = models.CharField(_('тип'), max_length=32, choices=FilmWorkType.choices, blank=True, null=True)
+    film_type = models.CharField(_('тип'), max_length=32, choices=FilmWorkType.choices, blank=True, default='')
 
     class Meta:
         db_table = 'film_work'
