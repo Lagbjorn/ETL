@@ -19,7 +19,7 @@ class MoviesApiMixin:
     def get_queryset(self) -> QuerySet:
         # look how we just do it in 2 SQL queries!
         # get queryset for all FilmWorks
-        qs = self.model.objects.all().order_by('title').values('id', 'title', 'description', 'creation_date')
+        qs = self.model.objects.all().order_by('title')
         # get queryset for fields with same names as API specification requires
         qs = qs.values('id', 'title', 'description', 'creation_date')
         # add renamed fields; this does not require additional queries to DB
