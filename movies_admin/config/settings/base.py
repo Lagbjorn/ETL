@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'movies',
+    'etl',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +57,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Database setup
 POSTGRES_USER = os.getenv('POSTGRES_USER', None)
 POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', None)
 
@@ -81,6 +83,11 @@ DATABASES = {
         }
     }
 }
+
+# ElasticSearch setup
+ES_HOST = os.getenv('ES_HOST', 'elastic_search')
+ES_PORT = os.getenv('ES_PORT', 9200)
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
