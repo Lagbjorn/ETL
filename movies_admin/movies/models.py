@@ -1,8 +1,13 @@
 import uuid
+from datetime import datetime
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from model_utils.models import TimeStampedModel
+
+# This datetime must be definitely older than the project
+# datetime.min is not used because it raises django OVERFLOW error when using timedelta
+DATETIME_ANCIENT = datetime(year=2020, month=1, day=1, hour=0, minute=0)
 
 
 class FilmWorkType(models.TextChoices):
@@ -70,6 +75,9 @@ class FilmWork(TimeStampedModel):
     genres = models.ManyToManyField(Genre, through='FilmWorkGenre')
     persons = models.ManyToManyField(Person, through='FilmWorkPerson')
     film_type = models.CharField(_('тип'), max_length=32, choices=FilmWorkType.choices, blank=True, default='')
+
+    # ElasticSearch specific field
+    indexed_at = models.DateTimeField(_('дата индексации в ElasticSearch'), default=DATETIME_ANCIENT)
 
     class Meta:
         db_table = 'film_work'
