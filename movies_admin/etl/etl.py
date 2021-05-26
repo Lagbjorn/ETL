@@ -1,22 +1,22 @@
-import json
 import logging
 from datetime import datetime
 from functools import wraps
-from pprint import pprint
 from typing import List
 
+import backoff
 from django.conf import settings
-from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import F, Q
+from django.contrib.postgres.aggregates import StringAgg
+from django.db.models import F, Q, TextField
 from django.db.models.functions import Greatest
-from elasticsearch import Elasticsearch
+from elasticsearch import ConnectionError, Elasticsearch
 from elasticsearch.helpers import bulk
 
 from movies.models import FilmWork, PersonJob
 
-BATCH_SIZE = 100
-DATETIME_ANCIENT = datetime(year=2020, month=1, day=1, hour=0, minute=0)
-TIME_FORMAT = '%d.%m.%y %H:%M:%S.%f'
+ETL_BATCH_SIZE = settings.ETL_BATCH_SIZE
+ES_MAX_RECONNECTIONS = settings.ES_MAX_RECONNECTIONS
+
+logger = logging.getLogger(__name__)
 
 
 def coroutine(func):
@@ -28,8 +28,6 @@ def coroutine(func):
 
     return inner
 
-logger = logging.getLogger(__name__)
-
 
 class ETL:
     """
@@ -37,11 +35,12 @@ class ETL:
     The ETL process state is stored in models (field `FilmWork.indexed_at`)
     so there is no need in additional file- or Redis-based state storage
     """
+
     def __init__(self):
         pass
 
     def start(self):
-        """Start ETL process"""
+        """Start ETL process using coroutines"""
         logger.info('Starting ETL process...')
         load_coroutine = self.load()
         transform_coroutine = self.transform(load_coroutine)
@@ -52,9 +51,14 @@ class ETL:
         while True:
             logger.info('Starting extract process...')
             film_works = self.get_updated_movies()
+
             if not film_works:
                 logger.info('Got no FilmWorks to update')
                 return
+            else:
+                count = len(film_works)
+                logger.info(f'Extracted {count} FilmWorks')
+            logger.info(f'Sending {count} FilmWorks to transform process...')
             target.send(film_works)
 
             # ensure we update indexed_at field
@@ -80,14 +84,15 @@ class ETL:
                     'id': str(film.id),
                     'title': film.title,
                     'imdb_rating': film.imdb_rating,
-                    'genre': ', '.join(film.genres_list),
-                    'writers_names': ', '.join(film.writers),
-                    'actors_names': ', '.join(film.actors),
-                    'director': ', '.join(film.directors),
+                    'genre': film.genres_string,
+                    'writers_names': film.writers,
+                    'actors_names': film.actors,
+                    'director': film.directors,
                     'description': film.description,
                 }
                 docs.append(doc)
-            target.send(docs)
+            logger.info(f'Sending {count} FilmWorks to load process...')
+            target.send((docs, count))
 
     @coroutine
     def load(self):
@@ -99,31 +104,55 @@ class ETL:
         es = Elasticsearch([config, ])
         logger.info('Connected to ElasticSearch')
         while True:
-            docs = (yield)
-            logger.info('Starting transform process...')
-            bulk(es, docs)
+            docs, count = (yield)
+            logger.info(f'Starting load process for {count} FilmWorks...')
+            self._bulk(es, docs)
+            logger.info(f'Indexed {count} FilmWorks')
+
+    @staticmethod
+    @backoff.on_exception(backoff.expo, ConnectionError, max_tries=ES_MAX_RECONNECTIONS)
+    def _bulk(es, docs):
+        """Bulk wrapped with backoff"""
+        bulk(es, docs)
 
     def get_updated_movies(self) -> List[FilmWork]:  # not just FilmWork, but FilmWork with extra annotated fields
         """
         Get queryset with recently modified movies,
         movies with recently modified related entities or relations.
         """
+        # annotate latest update of filmwork itself or related models
         last_db_update = Greatest('modified',
                                   'persons__modified',
                                   'genres__modified',
                                   'filmworkperson__modified',
                                   'filmworkgenre__modified')
-        # annotate latest update of filmwork itself or related models
         qs = FilmWork.objects.annotate(last_modified=last_db_update)
 
         # annotate related models using aggregation for easier transform
-        qs = qs.annotate(genres_list=ArrayAgg('genres__genre', distinct=True))
+        qs = qs.annotate(genres_string=StringAgg('genres__genre',
+                                                 distinct=True,
+                                                 delimiter=', ',
+                                                 output_field=TextField()))
         for job in PersonJob.values:
             jobs_list = job + 's'  # like actors_list, writers_list and so on
-            kwarg = {jobs_list: ArrayAgg('persons__name', distinct=True, filter=Q(filmworkperson__job=job))}
+            kwarg = {jobs_list: StringAgg('persons__name',
+                                          distinct=True,
+                                          filter=Q(filmworkperson__job=job),
+                                          delimiter=', ',
+                                          output_field=TextField())}
             qs = qs.annotate(**kwarg)
 
+        # defer unneeded fields
+        qs = qs.defer('persons',
+                      'genres',
+                      'creation_date',
+                      'film_rating',
+                      'film_type',
+                      'created',
+                      'modified')
         # filter by latest update, order by latest update (old comes first)
-        qs = qs.filter(last_modified__gt=F('indexed_at')).order_by('last_modified')
-        qs = qs[0:BATCH_SIZE]
+        qs = qs.filter(last_modified__gt=F('indexed_at'))
+        qs = qs.order_by('last_modified')
+
+        qs = qs[0:ETL_BATCH_SIZE]
         return list(qs)

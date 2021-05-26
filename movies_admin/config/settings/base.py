@@ -87,6 +87,8 @@ DATABASES = {
 # ElasticSearch setup
 ES_HOST = os.getenv('ES_HOST', 'elastic_search')
 ES_PORT = os.getenv('ES_PORT', 9200)
+ES_MAX_RECONNECTIONS = os.getenv('ES_MAX_RECONNECTIONS', 10)
+ETL_BATCH_SIZE = os.getenv('ETL_BATCH_SIZE', 50)
 
 
 AUTH_PASSWORD_VALIDATORS = [
