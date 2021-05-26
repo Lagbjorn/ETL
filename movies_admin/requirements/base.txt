@@ -1,4 +1,5 @@
-django==3.2.2
+django==3.2.3
 django-model-utils==4.1.1
 psycopg2==2.8.6
-elasticsearch==7.12.1
+elasticsearch==7.13.0
+backoff==1.10.0
