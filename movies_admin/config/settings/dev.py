@@ -6,7 +6,7 @@ INSTALLED_APPS.append('debug_toolbar')
 
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'filters': {
         'require_debug_true': {
             '()': 'django.utils.log.RequireDebugTrue',
@@ -29,6 +29,10 @@ LOGGING = {
             'level': 'DEBUG',
             'handlers': ['debug-console'],
             'propagate': False,
+        },
+        '': {
+            'level': 'DEBUG',
+            'handlers': ['debug-console'],
         }
     },
 }
