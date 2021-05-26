@@ -77,7 +77,7 @@ class FilmWork(TimeStampedModel):
     film_type = models.CharField(_('тип'), max_length=32, choices=FilmWorkType.choices, blank=True, default='')
 
     # ElasticSearch specific field
-    indexed_at = models.DateTimeField(_('дата индексации в ElasticSearch'), default=DATETIME_ANCIENT)
+    indexed_at = models.DateTimeField(_('дата индексации в ElasticSearch'), default=DATETIME_ANCIENT, editable=False)
 
     class Meta:
         db_table = 'film_work'

@@ -11,12 +11,6 @@ class GenreInline(admin.TabularInline):
 class PersonInline(admin.TabularInline):
     model = FilmWork.persons.through
     extra = 0
-    fields = (
-        'film_work',
-        'person',
-        'job',
-    )
-    search_fields = ('film_work', )
 
 
 @admin.register(FilmWork)
