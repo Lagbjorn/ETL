@@ -5,7 +5,7 @@ from typing import List
 
 import backoff
 from django.conf import settings
-from django.contrib.postgres.aggregates import StringAgg
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F, Q, TextField
 from django.db.models.functions import Greatest
 from elasticsearch import ConnectionError, Elasticsearch
@@ -105,9 +105,9 @@ class ETL:
         logger.info('Connected to ElasticSearch')
         while True:
             docs, count = (yield)
-            logger.info(f'Starting load process for {count} FilmWorks...')
+            logger.debug(f'Starting load process for {count} FilmWorks...')
             self._bulk(es, docs)
-            logger.info(f'Indexed {count} FilmWorks')
+            logger.debug(f'Indexed {count} FilmWorks')
 
     @staticmethod
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=ES_MAX_RECONNECTIONS)
@@ -129,17 +129,13 @@ class ETL:
         qs = FilmWork.objects.annotate(last_modified=last_db_update)
 
         # annotate related models using aggregation for easier transform
-        qs = qs.annotate(genres_string=StringAgg('genres__genre',
-                                                 distinct=True,
-                                                 delimiter=', ',
-                                                 output_field=TextField()))
+        qs = qs.annotate(genres_string=ArrayAgg('genres__genre',
+                                                distinct=True))
         for job in PersonJob.values:
             jobs_list = job + 's'  # like actors_list, writers_list and so on
-            kwarg = {jobs_list: StringAgg('persons__name',
-                                          distinct=True,
-                                          filter=Q(filmworkperson__job=job),
-                                          delimiter=', ',
-                                          output_field=TextField())}
+            kwarg = {jobs_list: ArrayAgg('persons__name',
+                                         distinct=True,
+                                         filter=Q(filmworkperson__job=job))}
             qs = qs.annotate(**kwarg)
 
         # defer unneeded fields
