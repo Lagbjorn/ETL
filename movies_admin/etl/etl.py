@@ -6,7 +6,7 @@ from typing import List
 import backoff
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import F, Q, TextField
+from django.db.models import F, Q
 from django.db.models.functions import Greatest
 from elasticsearch import ConnectionError, Elasticsearch
 from elasticsearch.helpers import bulk
