@@ -10,7 +10,9 @@ from django.db.models import F, Q, TextField
 from django.db.models.functions import Greatest
 from elasticsearch import ConnectionError, Elasticsearch
 from elasticsearch.helpers import bulk
+from pydantic import ValidationError
 
+from etl.models import FilmWorkES
 from movies.models import FilmWork, PersonJob
 
 ETL_BATCH_SIZE = settings.ETL_BATCH_SIZE
@@ -49,16 +51,16 @@ class ETL:
     def extract(self, target):
         """Extract updated movies and related models"""
         while True:
-            logger.info('Starting extract process...')
+            logger.debug('Starting extract process...')
             film_works = self.get_updated_movies()
 
             if not film_works:
-                logger.info('Got no FilmWorks to update')
+                logger.debug('Got no FilmWorks to update')
                 return
             else:
                 count = len(film_works)
-                logger.info(f'Extracted {count} FilmWorks')
-            logger.info(f'Sending {count} FilmWorks to transform process...')
+                logger.debug(f'Extracted {count} FilmWorks')
+            logger.debug(f'Sending {count} FilmWorks to transform process...')
             target.send(film_works)
 
             # ensure we update indexed_at field
@@ -75,34 +77,39 @@ class ETL:
         while True:
             film_works = (yield)
             count = len(film_works)
-            logger.info(f'Starting transform process for {count} FilmWorks...')
+            logger.debug(f'Starting transform process for {count} FilmWorks...')
             docs = []
             for film in film_works:
-                doc = {
-                    '_index': 'movies',
-                    '_id': str(film.id),
-                    'id': str(film.id),
-                    'title': film.title,
-                    'imdb_rating': film.imdb_rating,
-                    'genre': film.genres_string,
-                    'writers_names': film.writers,
-                    'actors_names': film.actors,
-                    'director': film.directors,
-                    'description': film.description,
-                }
+                # validation using pydantic
+                try:
+                    doc = FilmWorkES(id=str(film.id),
+                                     title=film.title,
+                                     imdb_rating=film.imdb_rating,
+                                     genre=film.genres_list,
+                                     writers_names=film.writers,
+                                     actors_names=film.actors,
+                                     director=film.directors,
+                                     description=film.description)
+                except ValidationError as e:
+                    logger.error(f'Transform received invalid data associated with FilmWork with id {film.id}')
+                    logger.error(e)
+                    return
+                doc = doc.dict()
+                doc['_index'] = 'movies'
+                doc['_id'] = str(film.id)
                 docs.append(doc)
-            logger.info(f'Sending {count} FilmWorks to load process...')
+            logger.debug(f'Sending {count} FilmWorks to load process...')
             target.send((docs, count))
 
     @coroutine
     def load(self):
         """Load data to ElasticSearch index"""
-        logger.info('Attempting connection to ElasticSearch')
+        logger.debug('Attempting connection to ElasticSearch')
         config = {'host': settings.ES_HOST,
                   'port': settings.ES_PORT,
                   }
         es = Elasticsearch([config, ])
-        logger.info('Connected to ElasticSearch')
+        logger.debug('Connected to ElasticSearch')
         while True:
             docs, count = (yield)
             logger.debug(f'Starting load process for {count} FilmWorks...')
@@ -129,8 +136,8 @@ class ETL:
         qs = FilmWork.objects.annotate(last_modified=last_db_update)
 
         # annotate related models using aggregation for easier transform
-        qs = qs.annotate(genres_string=ArrayAgg('genres__genre',
-                                                distinct=True))
+        qs = qs.annotate(genres_list=ArrayAgg('genres__genre',
+                                              distinct=True))
         for job in PersonJob.values:
             jobs_list = job + 's'  # like actors_list, writers_list and so on
             kwarg = {jobs_list: ArrayAgg('persons__name',
