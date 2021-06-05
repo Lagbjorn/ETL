@@ -12,8 +12,8 @@ from elasticsearch import ConnectionError, Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from etl.models import FilmWorkES
-from movies.models import FilmWork, PersonJob
+from etl.models import BasePerson, FilmWorkES
+from movies.models import FilmWork, Person, PersonJob
 
 ETL_BATCH_SIZE = settings.ETL_BATCH_SIZE
 ES_MAX_RECONNECTIONS = settings.ES_MAX_RECONNECTIONS
@@ -48,10 +48,13 @@ class ETL:
         transform_coroutine = self.transform(load_coroutine)
         self.extract(transform_coroutine)
 
+        load_coroutine = self.load()
+        transform_coroutine = self.transform_persons(load_coroutine)
+        self.extract_persons(transform_coroutine)
+
     def extract(self, target):
         """Extract updated movies and related models"""
         while True:
-            logger.debug('Starting extract process...')
             film_works = self.get_updated_movies()
 
             if not film_works:
@@ -60,7 +63,6 @@ class ETL:
             else:
                 count = len(film_works)
                 logger.debug(f'Extracted {count} FilmWorks')
-            logger.debug(f'Sending {count} FilmWorks to transform process...')
             target.send(film_works)
 
             # ensure we update indexed_at field
@@ -77,18 +79,25 @@ class ETL:
         while True:
             film_works = (yield)
             count = len(film_works)
-            logger.debug(f'Starting transform process for {count} FilmWorks...')
             docs = []
             for film in film_works:
-                # validation using pydantic
+                actors = [{'id': str(uuid), 'full_name': name}
+                          for uuid, name in zip(film.actor_ids, film.actor_names)]
+                writers = [{'id': str(uuid), 'full_name': name}
+                           for uuid, name in zip(film.writer_ids, film.writer_names)]
+                directors = [{'id': str(uuid), 'full_name': name}
+                             for uuid, name in zip(film.director_ids, film.director_names)]
                 try:
                     doc = FilmWorkES(id=str(film.id),
                                      title=film.title,
-                                     imdb_rating=film.imdb_rating,
-                                     genre=film.genres_list,
-                                     writers_names=film.writers,
-                                     actors_names=film.actors,
-                                     director=film.directors,
+                                     rating=film.imdb_rating,
+                                     genres=film.genres_list,
+                                     writers_names=film.writer_names,
+                                     actors_names=film.actor_names,
+                                     directors_names=film.director_names,
+                                     actors=actors,
+                                     writers=writers,
+                                     directors=directors,
                                      description=film.description)
                 except ValidationError as e:
                     logger.error(f'Transform received invalid data associated with FilmWork with id {film.id}')
@@ -98,13 +107,11 @@ class ETL:
                 doc['_index'] = 'movies'
                 doc['_id'] = str(film.id)
                 docs.append(doc)
-            logger.debug(f'Sending {count} FilmWorks to load process...')
             target.send((docs, count))
 
     @coroutine
     def load(self):
         """Load data to ElasticSearch index"""
-        logger.debug('Attempting connection to ElasticSearch')
         config = {'host': settings.ES_HOST,
                   'port': settings.ES_PORT,
                   }
@@ -112,9 +119,48 @@ class ETL:
         logger.debug('Connected to ElasticSearch')
         while True:
             docs, count = (yield)
-            logger.debug(f'Starting load process for {count} FilmWorks...')
             self._bulk(es, docs)
-            logger.debug(f'Indexed {count} FilmWorks')
+            logger.debug(f'Indexed {count} docs')
+
+    def extract_persons(self, target):
+        while True:
+            persons = self.get_updated_perons()
+
+            if not persons:
+                logger.debug('Got no Persons to update')
+                return
+            else:
+                count = len(persons)
+                logger.debug(f'Extracted {count} Persons')
+            target.send(persons)
+
+            # ensure we update indexed_at field
+            indexed_at = datetime.now()
+            for person in persons:
+                person.indexed_at = indexed_at
+            # note that this will not apply to `modified` field
+            # because of the default bulk_update implementation - and this is what we want
+            Person.objects.bulk_update(persons, ['indexed_at'])
+
+    @coroutine
+    def transform_persons(self, target):
+        while True:
+            persons = (yield)
+            count = len(persons)
+            docs = []
+            for person in persons:
+                try:
+                    doc = BasePerson(id=str(person.id),
+                                     full_name=person.name)
+                except ValidationError as e:
+                    logger.error(f'Transform received invalid data associated with Person with id {person.id}')
+                    logger.error(e)
+                    return
+                doc = doc.dict()
+                doc['_index'] = 'persons'
+                doc['_id'] = str(person.id)
+                docs.append(doc)
+            target.send((docs, count))
 
     @staticmethod
     @backoff.on_exception(backoff.expo, ConnectionError, max_tries=ES_MAX_RECONNECTIONS)
@@ -139,8 +185,14 @@ class ETL:
         qs = qs.annotate(genres_list=ArrayAgg('genres__genre',
                                               distinct=True))
         for job in PersonJob.values:
-            jobs_list = job + 's'  # like actors_list, writers_list and so on
-            kwarg = {jobs_list: ArrayAgg('persons__name',
+            jobs_ids = job + '_ids'  # like actors, writers and so on
+
+            kwarg = {jobs_ids: ArrayAgg('persons__id',
+                                        distinct=True,
+                                        filter=Q(filmworkperson__job=job))}
+            qs = qs.annotate(**kwarg)
+            job_names = job + '_names'
+            kwarg = {job_names: ArrayAgg('persons__name',
                                          distinct=True,
                                          filter=Q(filmworkperson__job=job))}
             qs = qs.annotate(**kwarg)
@@ -154,6 +206,23 @@ class ETL:
                       'created',
                       'modified')
         # filter by latest update, order by latest update (old comes first)
+        qs = qs.filter(last_modified__gt=F('indexed_at'))
+        qs = qs.order_by('last_modified')
+
+        qs = qs[0:ETL_BATCH_SIZE]
+        return list(qs)
+
+    def get_updated_perons(self) -> List[Person]:  # not just FilmWork, but FilmWork with extra annotated fields
+        """
+        Get queryset with recently modified movies,
+        movies with recently modified related entities or relations.
+        """
+        # annotate latest update of filmwork itself or related models
+        last_db_update = Greatest('modified',
+                                  'filmwork__modified',
+                                  'filmworkperson__modified', )
+        qs = Person.objects.annotate(last_modified=last_db_update)
+
         qs = qs.filter(last_modified__gt=F('indexed_at'))
         qs = qs.order_by('last_modified')
 

@@ -3,12 +3,20 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
+class BasePerson(BaseModel):
+    id: str
+    full_name: str
+
+
 class FilmWorkES(BaseModel):
     id: str
     title: str
-    imdb_rating: Optional[float]
-    genre: List[str]
+    description: str
+    rating: Optional[float]
+    genres: List[str]
     writers_names: List[str]
     actors_names: List[str]
-    director: List[str]
-    description: str
+    directors_names: List[str]
+    writers: List[BasePerson]
+    actors: List[BasePerson]
+    directors: List[BasePerson]

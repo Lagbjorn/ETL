@@ -29,6 +29,9 @@ class Person(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.TextField(_('имя'))
 
+    # ElasticSearch specific field
+    indexed_at = models.DateTimeField(_('дата индексации в ElasticSearch'), default=DATETIME_ANCIENT, editable=False)
+
     class Meta:
         db_table = 'person'
         verbose_name = _('человек')
@@ -46,6 +49,9 @@ class Genre(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     genre = models.CharField(_('жанр'), max_length=255, unique=True)
     description = models.TextField(_('описание'), blank=True, default='')
+
+    # ElasticSearch specific field
+    indexed_at = models.DateTimeField(_('дата индексации в ElasticSearch'), default=DATETIME_ANCIENT, editable=False)
 
     class Meta:
         db_table = 'genre'
