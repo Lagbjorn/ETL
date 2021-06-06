@@ -87,11 +87,14 @@ class ETL:
                            for uuid, name in zip(film.writer_ids, film.writer_names)]
                 directors = [{'id': str(uuid), 'full_name': name}
                              for uuid, name in zip(film.director_ids, film.director_names)]
+                genres = [{'id': str(uuid), 'name': name}
+                          for uuid, name in zip(film.genres_ids, film.genres_list)]
                 try:
                     doc = FilmWorkES(id=str(film.id),
                                      title=film.title,
                                      rating=film.imdb_rating,
-                                     genres=film.genres_list,
+                                     genres=genres,
+                                     genres_names=film.genres_list,
                                      writers_names=film.writer_names,
                                      actors_names=film.actor_names,
                                      directors_names=film.director_names,
@@ -184,6 +187,8 @@ class ETL:
         # annotate related models using aggregation for easier transform
         qs = qs.annotate(genres_list=ArrayAgg('genres__genre',
                                               distinct=True))
+        qs = qs.annotate(genres_ids=ArrayAgg('genres__id',
+                                             distinct=True))
         for job in PersonJob.values:
             jobs_ids = job + '_ids'  # like actors, writers and so on
 

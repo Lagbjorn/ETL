@@ -8,12 +8,18 @@ class BasePerson(BaseModel):
     full_name: str
 
 
+class BaseGenre(BaseModel):
+    id: str
+    name: str
+
+
 class FilmWorkES(BaseModel):
     id: str
     title: str
     description: str
     rating: Optional[float]
-    genres: List[str]
+    genres: List[BaseGenre]
+    genres_names: List[str]
     writers_names: List[str]
     actors_names: List[str]
     directors_names: List[str]
