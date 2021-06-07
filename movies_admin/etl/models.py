@@ -13,6 +13,10 @@ class BaseGenre(BaseModel):
     name: str
 
 
+class Genre(BaseGenre):
+    description: str
+
+
 class FilmWorkES(BaseModel):
     id: str
     title: str
