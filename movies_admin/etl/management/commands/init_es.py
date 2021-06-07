@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from elasticsearch import Elasticsearch
 
-from movies.models import DATETIME_ANCIENT, FilmWork, Person
+from movies.models import DATETIME_ANCIENT, FilmWork, Genre, Person
 
 
 class Command(BaseCommand):
@@ -22,9 +22,11 @@ class Command(BaseCommand):
         es = Elasticsearch([config, ])
         self._init_index(es, 'movies', 'etl/es_schema.json')
         self._init_index(es, 'persons', 'etl/es_schema_persons.json')
+        self._init_index(es, 'genres', 'etl/es_schema_genres.json')
 
         FilmWork.objects.all().update(indexed_at=DATETIME_ANCIENT)
         Person.objects.all().update(indexed_at=DATETIME_ANCIENT)
+        Genre.objects.all().update(indexed_at=DATETIME_ANCIENT)
 
     @staticmethod
     def _init_index(es, index_name, schema_path):
