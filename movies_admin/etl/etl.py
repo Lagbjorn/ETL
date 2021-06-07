@@ -12,8 +12,9 @@ from elasticsearch import ConnectionError, Elasticsearch
 from elasticsearch.helpers import bulk
 from pydantic import ValidationError
 
-from etl.models import BasePerson, FilmWorkES
+from etl.models import BasePerson, FilmWorkES, Genre
 from movies.models import FilmWork, Person, PersonJob
+from movies import models as m
 
 ETL_BATCH_SIZE = settings.ETL_BATCH_SIZE
 ES_MAX_RECONNECTIONS = settings.ES_MAX_RECONNECTIONS
@@ -51,6 +52,10 @@ class ETL:
         load_coroutine = self.load()
         transform_coroutine = self.transform_persons(load_coroutine)
         self.extract_persons(transform_coroutine)
+
+        load_coroutine = self.load()
+        transform_coroutine = self.transform_genres(load_coroutine)
+        self.extract_genres(transform_coroutine)
 
     def extract(self, target):
         """Extract updated movies and related models"""
@@ -103,9 +108,8 @@ class ETL:
                                      directors=directors,
                                      description=film.description)
                 except ValidationError as e:
-                    logger.error(f'Transform received invalid data associated with FilmWork with id {film.id}')
                     logger.error(e)
-                    return
+                    raise e
                 doc = doc.dict()
                 doc['_index'] = 'movies'
                 doc['_id'] = str(film.id)
@@ -156,12 +160,47 @@ class ETL:
                     doc = BasePerson(id=str(person.id),
                                      full_name=person.name)
                 except ValidationError as e:
-                    logger.error(f'Transform received invalid data associated with Person with id {person.id}')
                     logger.error(e)
-                    return
+                    raise e
                 doc = doc.dict()
                 doc['_index'] = 'persons'
                 doc['_id'] = str(person.id)
+                docs.append(doc)
+            target.send((docs, count))
+
+    def extract_genres(self, target):
+        while True:
+            genres = self.get_updated_genres()
+
+            if not genres:
+                return
+            target.send(genres)
+
+            # ensure we update indexed_at field
+            indexed_at = datetime.now()
+            for genre in genres:
+                genre.indexed_at = indexed_at
+            # note that this will not apply to `modified` field
+            # because of the default bulk_update implementation - and this is what we want
+            m.Genre.objects.bulk_update(genres, ['indexed_at'])
+
+    @coroutine
+    def transform_genres(self, target):
+        while True:
+            genres = (yield)
+            count = len(genres)
+            docs = []
+            for genre in genres:
+                try:
+                    doc = Genre(id=str(genre.id),
+                                name=genre.genre,
+                                description='')
+                except ValidationError as e:
+                    logger.error(e)
+                    raise e
+                doc = doc.dict()
+                doc['_index'] = 'genres'
+                doc['_id'] = str(genre.id)
                 docs.append(doc)
             target.send((docs, count))
 
@@ -227,6 +266,23 @@ class ETL:
                                   'filmwork__modified',
                                   'filmworkperson__modified', )
         qs = Person.objects.annotate(last_modified=last_db_update)
+
+        qs = qs.filter(last_modified__gt=F('indexed_at'))
+        qs = qs.order_by('last_modified')
+
+        qs = qs[0:ETL_BATCH_SIZE]
+        return list(qs)
+
+    def get_updated_genres(self) -> List[Genre]:
+        """
+        Get list with recently modified genres
+        :return:
+        """
+        # annotate latest update of filmwork itself or related models
+        last_db_update = Greatest('modified',
+                                  'filmwork__modified',
+                                  'filmworkgenre__modified', )
+        qs = m.Genre.objects.annotate(last_modified=last_db_update)
 
         qs = qs.filter(last_modified__gt=F('indexed_at'))
         qs = qs.order_by('last_modified')
