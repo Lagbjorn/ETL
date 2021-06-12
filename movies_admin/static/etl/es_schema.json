@@ -58,7 +58,7 @@
         "type": "text",
         "analyzer": "ru_en"
       },
-      "rating": {
+      "imdb_rating": {
         "type": "float"
       },
       "genres": {

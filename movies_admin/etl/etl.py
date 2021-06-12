@@ -97,7 +97,7 @@ class ETL:
                 try:
                     doc = FilmWorkES(id=str(film.id),
                                      title=film.title,
-                                     rating=film.imdb_rating,
+                                     imdb_rating=film.imdb_rating,
                                      genres=genres,
                                      genres_names=film.genres_list,
                                      writers_names=film.writer_names,

@@ -21,7 +21,7 @@ class FilmWorkES(BaseModel):
     id: str
     title: str
     description: str
-    rating: Optional[float]
+    imdb_rating: Optional[float]
     genres: List[BaseGenre]
     genres_names: List[str]
     writers_names: List[str]
